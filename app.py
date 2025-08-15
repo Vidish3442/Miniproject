@@ -1,67 +1,45 @@
-from flask import Flask, render_template, request, send_from_directory
+import streamlit as st
+import gdown
 import os
 from keras.models import load_model
-from keras.preprocessing import image
-import numpy as np
 from PIL import Image
-import gdown
+import numpy as np
 
-# Flask setup
-app = Flask(__name__)
-UPLOAD_FOLDER = 'uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+# App title
+st.title("🩺 Diabetic Retinopathy Detector")
+st.write("Upload a retina image to detect the severity of DR.")
 
-# Model setup
-MODEL_PATH = 'dr_model.h5'
-MODEL_URL = "https://drive.google.com/uc?id=11DVFnbesDNaxrqCSAwgC8t76Ntgdu2q_"  # your file ID
+# Model download
+MODEL_URL = "https://drive.google.com/uc?id=11DVFnbesDNaxrqCSAwgC8t76Ntgdu2q_"
+MODEL_PATH = "dr_model.h5"
 
-# Download model from Google Drive if not exists
 if not os.path.exists(MODEL_PATH):
-    print("Downloading model...")
-    gdown.download(MODEL_URL, MODEL_PATH, quiet=False)
-    print("Download complete.")
+    with st.spinner("Downloading model (200MB)..."):
+        gdown.download(MODEL_URL, MODEL_PATH, quiet=False)
+    st.success("Model downloaded!")
 
+# Load model
 model = load_model(MODEL_PATH)
 classes = ['No_DR', 'Mild', 'Moderate', 'Severe', 'Proliferate_DR']
 
-@app.route('/')
-def index():
-    return render_template('index.html', prediction=None)
+# File uploader
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    if 'file' not in request.files:
-        return "No file part"
+if uploaded_file is not None:
+    # Display uploaded image
+    image = Image.open(uploaded_file).convert('RGB')
+    st.image(image, caption='Uploaded Image', use_column_width=True)
 
-    file = request.files['file']
-    if file.filename == '':
-        return "No selected file"
+    # Preprocess image
+    img = image.resize((224, 224))
+    img_array = np.array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
 
-    if file:
-        filename = file.filename
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
+    # Make prediction
+    preds = model.predict(img_array)
+    pred_class = classes[np.argmax(preds)]
+    confidence = float(np.max(preds)) * 100
 
-        # Image preprocessing
-        img = Image.open(filepath).convert('RGB')
-        img = img.resize((224, 224))
-        img_array = np.array(img) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
-
-        preds = model.predict(img_array)
-        pred_class = classes[np.argmax(preds)]
-        confidence = float(np.max(preds)) * 100
-
-        return render_template('index.html',
-                               prediction=pred_class,
-                               confidence=f"{confidence:.2f}",
-                               filename=filename)
-    return "Something went wrong"
-
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    # Show results
+    st.markdown(f"**Prediction:** {pred_class}")
+    st.markdown(f"**Confidence:** {confidence:.2f}%")
