@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diabetic Retinopathy Detector</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 600px;
+            margin-top: 50px;
+            padding: 30px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+        .form-group {
+            text-align: center;
+        }
+        .btn-submit {
+            background-color: #007bff;
+            color: white;
+            font-size: 18px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+        }
+        .btn-submit:hover {
+            background-color: #0056b3;
+        }
+        .prediction {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .prediction img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Diabetic Retinopathy Detector</h2>
+
+        <form action="/predict" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <input type="file" name="file" class="form-control-file" required>
+            </div>
+            <div class="form-group text-center">
+                <button type="submit" class="btn-submit">Predict</button>
+            </div>
+        </form>
+
+        {% if prediction %}
+        <div class="prediction">
+            <h3 class="result">
+                Prediction: 
+                <span class="{% if prediction in ['Severe', 'Proliferate_DR'] %}text-danger{% elif prediction == 'Moderate' %}text-warning{% else %}text-success{% endif %}">
+                    {{ prediction }}
+                </span>
+            </h3>
+            <h4>Confidence: {{ confidence }}%</h4>
+            {% if filename %}
+            <img src="{{ url_for('uploaded_file', filename=filename) }}" alt="Uploaded Image" class="img-fluid">
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="alert alert-info" role="alert">
+            Upload a retina image to check for Diabetic Retinopathy.
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
