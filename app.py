@@ -7,8 +7,7 @@ import numpy as np
 import time
 
 # Page configuration
-st.set_page_config(page_title="Diabetic Retinopathy Detector By Vidish and Shardul",
-                   page_icon="🩺", layout="wide")
+st.set_page_config(page_title="Diabetic Retinopathy Detector By Vidish and Shardul", page_icon="🩺", layout="centered")
 
 # Custom CSS
 st.markdown("""
@@ -45,7 +44,7 @@ body {
 """, unsafe_allow_html=True)
 
 # Title
-st.markdown("<h1 style='text-align:center;color:#333;'>🩺 Diabetic Retinopathy Detector</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center;color:#333;'>🩺 Diabetic Retinopathy Detector By Vidish and Shardul</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center;color:#555;'>Upload a retina image to check DR severity</p>", unsafe_allow_html=True)
 
 # Model setup
@@ -60,13 +59,13 @@ if not os.path.exists(MODEL_PATH):
 model = load_model(MODEL_PATH)
 classes = ['No_DR', 'Mild', 'Moderate', 'Severe', 'Proliferate_DR']
 
-# Colors & emojis
+# Colors & emojis for severity
 colors = {
-    "No_DR": "#28a745",
-    "Mild": "#17a2b8",
-    "Moderate": "#ffc107",
-    "Severe": "#fd7e14",
-    "Proliferate_DR": "#dc3545"
+    "No_DR": "#28a745",          # Green
+    "Mild": "#17a2b8",           # Blue
+    "Moderate": "#ffc107",       # Yellow
+    "Severe": "#fd7e14",         # Orange
+    "Proliferate_DR": "#dc3545"  # Red
 }
 emojis = {
     "No_DR": "🟢",
@@ -76,55 +75,40 @@ emojis = {
     "Proliferate_DR": "😢"
 }
 
-# Layout: two columns
-left_col, right_col = st.columns([2, 1])
+# File uploader
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
-# Right column: Info / Instructions
-with right_col:
+if uploaded_file is not None:
+    image = Image.open(uploaded_file).convert('RGB')
+
+    # Card layout
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.markdown("### ℹ️ Instructions")
-    st.markdown("""
-    1. Upload a clear retina image (jpg, jpeg, png).  
-    2. Wait for the model to predict severity.  
-    3. Observe the prediction and confidence bar.  
-    4. Color & emoji indicate severity (green 🟢 = No DR, red 😢 = Proliferate DR).  
-    """)
+    st.image(image, caption='Uploaded Image', use_column_width=True)
+
+    # Preprocess image
+    img = image.resize((224, 224))
+    img_array = np.array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
+
+    # Animated prediction bar
+    with st.spinner("Predicting..."):
+        progress_bar = st.progress(0)
+        for i in range(0, 101, 10):
+            progress_bar.progress(i)
+            time.sleep(0.05)
+        preds = model.predict(img_array)
+
+    pred_class = classes[np.argmax(preds)]
+    confidence = float(np.max(preds)) * 100
+
+    # Prediction with color + emoji
+    st.markdown(f"<h2 style='color:{colors[pred_class]};'>{emojis[pred_class]} Prediction: {pred_class}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h4>Confidence: {confidence:.2f}%</h4>", unsafe_allow_html=True)
+
+    # Dynamic confidence bar
+    bar_color = colors[pred_class]
+    st.markdown(f"""
+    <div class='conf-bar' style='background-color:{bar_color}; width:{int(confidence)}%'></div>
+    """, unsafe_allow_html=True)
+
     st.markdown("</div>", unsafe_allow_html=True)
-
-# Left column: Image + prediction
-with left_col:
-    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
-    
-    if uploaded_file is not None:
-        image = Image.open(uploaded_file).convert('RGB')
-
-        st.markdown("<div class='card'>", unsafe_allow_html=True)
-        st.image(image, caption='Uploaded Image', use_column_width=True)
-
-        # Preprocess image
-        img = image.resize((224, 224))
-        img_array = np.array(img) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
-
-        # Animated prediction bar
-        with st.spinner("Predicting..."):
-            progress_bar = st.progress(0)
-            for i in range(0, 101, 10):
-                progress_bar.progress(i)
-                time.sleep(0.05)
-            preds = model.predict(img_array)
-
-        pred_class = classes[np.argmax(preds)]
-        confidence = float(np.max(preds)) * 100
-
-        # Prediction with color + emoji
-        st.markdown(f"<h2 style='color:{colors[pred_class]};'>{emojis[pred_class]} Prediction: {pred_class}</h2>", unsafe_allow_html=True)
-        st.markdown(f"<h4>Confidence: {confidence:.2f}%</h4>", unsafe_allow_html=True)
-
-        # Dynamic confidence bar
-        bar_color = colors[pred_class]
-        st.markdown(f"""
-        <div class='conf-bar' style='background-color:{bar_color}; width:{int(confidence)}%'></div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("</div>", unsafe_allow_html=True)
