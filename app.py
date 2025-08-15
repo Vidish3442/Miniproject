@@ -83,7 +83,7 @@ if uploaded_file is not None:
 
     # Card layout
     st.markdown("<div class='card'>", unsafe_allow_html=True)
-    st.image(image, caption='Uploaded Image', use_column_width=True)
+    st.image(image, caption='Uploaded Image', use_container_width=True)
 
     # Preprocess image
     img = image.resize((224, 224))
