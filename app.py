@@ -7,7 +7,7 @@ import numpy as np
 import time
 
 # Page configuration
-st.set_page_config(page_title="Diabetic Retinopathy Detector", page_icon="🩺", layout="centered")
+st.set_page_config(page_title="Diabetic Retinopathy Detector By Vidish and Shardul", page_icon="🩺", layout="centered")
 
 # Custom CSS
 st.markdown("""
