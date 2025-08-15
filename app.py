@@ -5,10 +5,9 @@ from keras.models import load_model
 from PIL import Image
 import numpy as np
 import time
-import streamlit.components.v1 as components
 
 # Page configuration
-st.set_page_config(page_title="Diabetic Retinopathy Detector", page_icon="🩺", layout="wide")
+st.set_page_config(page_title="Diabetic Retinopathy Detector", page_icon="🩺", layout="centered")
 
 # Custom CSS
 st.markdown("""
@@ -77,59 +76,39 @@ emojis = {
 }
 
 # File uploader
-uploaded_file = st.file_uploader("Choose a retina image...", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
     image = Image.open(uploaded_file).convert('RGB')
 
-    # Create side-by-side layout
-    left_col, right_col = st.columns([1,1])
+    # Card layout
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.image(image, caption='Uploaded Image', use_column_width=True)
 
-    # --- LEFT COLUMN: Prediction Card ---
-    with left_col:
-        st.markdown("<div class='card'>", unsafe_allow_html=True)
-        st.image(image, caption='Uploaded Image', use_column_width=True)
+    # Preprocess image
+    img = image.resize((224, 224))
+    img_array = np.array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
 
-        # Preprocess image
-        img = image.resize((224, 224))
-        img_array = np.array(img) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
+    # Animated prediction bar
+    with st.spinner("Predicting..."):
+        progress_bar = st.progress(0)
+        for i in range(0, 101, 10):
+            progress_bar.progress(i)
+            time.sleep(0.05)
+        preds = model.predict(img_array)
 
-        # Animated prediction bar
-        with st.spinner("Predicting..."):
-            progress_bar = st.progress(0)
-            for i in range(0, 101, 10):
-                progress_bar.progress(i)
-                time.sleep(0.05)
-            preds = model.predict(img_array)
+    pred_class = classes[np.argmax(preds)]
+    confidence = float(np.max(preds)) * 100
 
-        pred_class = classes[np.argmax(preds)]
-        confidence = float(np.max(preds)) * 100
+    # Prediction with color + emoji
+    st.markdown(f"<h2 style='color:{colors[pred_class]};'>{emojis[pred_class]} Prediction: {pred_class}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h4>Confidence: {confidence:.2f}%</h4>", unsafe_allow_html=True)
 
-        # Prediction with color + emoji
-        st.markdown(f"<h2 style='color:{colors[pred_class]};'>{emojis[pred_class]} Prediction: {pred_class}</h2>", unsafe_allow_html=True)
-        st.markdown(f"<h4>Confidence: {confidence:.2f}%</h4>", unsafe_allow_html=True)
+    # Dynamic confidence bar
+    bar_color = colors[pred_class]
+    st.markdown(f"""
+    <div class='conf-bar' style='background-color:{bar_color}; width:{int(confidence)}%'></div>
+    """, unsafe_allow_html=True)
 
-        # Dynamic confidence bar
-        bar_color = colors[pred_class]
-        st.markdown(f"""
-        <div class='conf-bar' style='background-color:{bar_color}; width:{int(confidence)}%'></div>
-        """, unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # --- RIGHT COLUMN: 3D Eye Model ---
-    with right_col:
-        st.markdown("<div class='card'>", unsafe_allow_html=True)
-        st.markdown("### 👁 Explore 3D Human Eye")
-        components.html("""
-        <div class="sketchfab-embed-wrapper" style="width: 100%; height: 500px;">
-          <iframe title="Human Eye Photorealistic"
-                  frameborder="0" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true"
-                  allow="autoplay; fullscreen; xr-spatial-tracking"
-                  xr-spatial-tracking execution-while-out-of-viewport execution-while-not-rendered web-share
-                  src="https://sketchfab.com/models/225b58ebf0c84d6a9e2bc1e17cfbb167/embed?autostart=1&preload=1&transparent=1&ui_hint=0"
-                  width="100%" height="500px">
-          </iframe>
-        </div>
-        """, height=500)
-        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
